@@ -2,6 +2,7 @@ import streamlit as st
 import json
 import os
 import re
+import hashlib
 
 # JSON DB 설정
 DB_FILE = "users.json"
@@ -22,19 +23,31 @@ def save_user(id, pw):
         json.dump(users, f, ensure_ascii=False, indent=4)
     return True
 
+
+def get_safe_filename(user_id: str) -> str:
+    """사용자 ID로부터 안전한 해시 문자열을 생성합니다 (세션에 저장용)."""
+    return hashlib.sha256(user_id.encode("utf-8")).hexdigest()
+
 # --- 유효성 검사 함수 ---
 def validate_email(email):
     return "@" in email
 
 def validate_password(password):
-    if 8 < len(password) < 20:
-        return False, "비밀번호는 8-20자로 설정해주세요."
-    if not any(char.isupper() for char in password):
-        return False, "비밀번호에 대문자가 최소 1개 이상 포함되어야 합니다."
-    special_char_pattern = re.compile(r'[^a-zA-Z0-9]')
-    if not special_char_pattern.search(password):
-        return False, "비밀번호에 특수문자가 최소 1개 이상 포함되어야 합니다."
-    return True, "통과"
+    # 기본 입력값 확인
+    if not isinstance(password, str) or password == "":
+        return False, "비밀번호를 입력해주세요."
+
+    # 각 조건 체크
+    length_ok = 8 <= len(password) <= 20
+    upper_ok = any(char.isupper() for char in password)
+    special_ok = bool(re.search(r'[^a-zA-Z0-9]', password))
+
+    # 모든 조건이 True인지 확인
+    if length_ok and upper_ok and special_ok:
+        return True, "통과"
+    else:
+        # 하나라도 만족하지 못하면 공통 메시지 반환
+        return False, "대문자, 특수문자가 하나 이상 포함된 8~20자의 패스워드를 생성해주세요."
 
 # --- 세션 상태 초기화 ---
 if "logged_in" not in st.session_state:
@@ -59,7 +72,7 @@ else:
     if st.session_state["page"] == "login":
         st.title("🔑 로그인")
         login_id = st.text_input("Email", placeholder="example@example.com")
-        login_pw = st.text_input("Password", type="password", placeholder="비밀번호 입력 (최소 영문 대문자, 특수문자 하나 이상 포함한 8~20자)")
+        login_pw = st.text_input("Password", type="password", placeholder="비밀번호 입력 (대문자, 특수문자 하나 이상 포함한 8~20자)")
         
         col1, col2 = st.columns([0.2, 1])
 
@@ -69,8 +82,11 @@ else:
                 if login_id in users and users[login_id] == login_pw:
                     st.session_state["logged_in"] = True
                     st.session_state["user_id"] = login_id
+                    # 해시값을 세션에 저장하여 전체 페이지에서 공유
+                    st.session_state["user_hash"] = get_safe_filename(login_id)
                     st.session_state["error_msg"] = "" # 성공 시 에러 초기화
-                    st.rerun()
+                    # 로그인 성공 시 퀴즈 페이지로 이동
+                    st.switch_page("pages/02quiz.py")
                 else:
                     st.session_state["error_msg"] = "정보가 일치하지 않습니다."
         
@@ -80,33 +96,42 @@ else:
                 st.session_state["error_msg"] = "" # 페이지 이동 시 에러 초기화
                 st.rerun()
 
-        # 에러 메시지를 컬럼 외부(전체 너비)에서 출력
+        # 에러 메시지 출력
         if st.session_state["error_msg"]:
             st.error(st.session_state["error_msg"])
 
     elif st.session_state["page"] == "signup":
         st.title("📝 회원가입")
         new_id = st.text_input("Email", placeholder="example@example.com")
-        new_pw = st.text_input("Password", type="password" , placeholder="비밀번호 입력 (최소 영문 대문자, 특수문자 하나 이상 포함한 8~20자)")
+        new_pw = st.text_input("Password", type="password" , placeholder="비밀번호 입력 (대문자, 특수문자 하나 이상 포함한 8~20자)")
         
         col_sub1, col_sub2 = st.columns([0.2, 1])
         
         with col_sub1:
             if st.button("가입하기", use_container_width=True):
+                # 1) 이메일 형식 검사
                 if not validate_email(new_id):
                     st.session_state["error_msg"] = "올바른 이메일 형식이 아닙니다. ('@' 포함 필수)"
-                else:
-                    is_valid_pw, message = validate_password(new_pw)
-                    if not is_valid_pw:
-                        st.session_state["error_msg"] = message
-                    else:
-                        if save_user(new_id, new_pw):
-                            st.success("회원가입 성공!")
-                            st.session_state["page"] = "login"
-                            st.session_state["error_msg"] = ""
-                            st.rerun()
-                        else:
-                            st.session_state["error_msg"] = "이미 존재하는 이메일입니다."
+                    st.rerun()
+
+                # 2) 이미 존재하는 이메일인지 우선 검사 (이 경우 비밀번호 검증보다 우선)
+                users = load_users()
+                if new_id in users:
+                    st.session_state["error_msg"] = "이미 존재하는 이메일입니다."
+                    st.rerun()
+
+                # 3) 비밀번호 검증
+                is_valid_pw, message = validate_password(new_pw)
+                if not is_valid_pw:
+                    st.session_state["error_msg"] = message
+                    st.rerun()
+
+                # 4) 사용자 저장
+                if save_user(new_id, new_pw):
+                    st.success("회원가입 성공!")
+                    st.session_state["page"] = "login"
+                    st.session_state["error_msg"] = ""
+                    st.rerun()
         
         with col_sub2:
             if st.button("취소"):
@@ -114,6 +139,6 @@ else:
                 st.session_state["error_msg"] = ""
                 st.rerun()
 
-        # 회원가입 에러 메시지도 전체 너비로 출력
+        # 회원가입 에러 메시지 출력
         if st.session_state["error_msg"]:
             st.error(st.session_state["error_msg"])
