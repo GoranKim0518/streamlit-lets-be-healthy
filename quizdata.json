@@ -1,19 +1,20 @@
 {
   "response_scales": {
     "yesno": {"0": "아니오", "1": "네"},
+    "yesno_inverted": {"0": "네", "1": "아니오"},
     "likert": {"0": "전혀 아니다", "1": "거의 아니다", "2": "가끔", "3": "자주", "4": "항상"}
   },
   "questions": [
     {"id":1,"text":"일주일에 배달 음식을 4회 이상 먹는 편이다","response_type":"likert","category":"식습관","weight":1.0},
-    {"id":2,"text":"하루 순수 물을 500ml 미만 마시는 편이다","response_type":"yesno","category":"식습관","weight":1.0},
+    {"id":2,"text":"하루에 물을 500ml 이상 충분히 마시는 편이다","response_type":"yesno_inverted","category":"식습관","weight":1.0},
     {"id":3,"text":"식사 후 30분 이내에 바로 눕는 편이다","response_type":"likert","category":"생활습관","weight":1.5},
     {"id":4,"text":"하루 평균 걸음수가 5,000보 미만이다","response_type":"yesno","category":"활동량","weight":2.0},
-    {"id":5,"text":"주 3회 이상 에너지드링크 또는 고카페인 음료를 마신다","response_type":"yesno","category":"생활습관","weight":1.5},
+    {"id":5,"text":"하루에 카페인 음료(커피, 에너지드링크 등)를 3잔 이상 마시는 편이다","response_type":"yesno","category":"생활습관","weight":1.5},
     {"id":6,"text":"잠들기 직전까지 스마트폰을 사용하는 편이다","response_type":"likert","category":"수면","weight":1.5},
     {"id":7,"text":"하루 연속 4시간 이상 앉아 있는 편이다","response_type":"yesno","category":"활동량","weight":2.0},
     {"id":8,"text":"번아웃 또는 무기력함 주 3회 이상 느낀다","response_type":"likert","category":"정신건강","weight":2.5},
     {"id":9,"text":"일주일에 숨 찰 정도의 운동을 1회도 하지 않는다","response_type":"yesno","category":"활동량","weight":2.0},
-    {"id":10,"text":"매일 채소나 과일을 1회 이상 먹지 않는다","response_type":"yesno","category":"식습관","weight":1.0},
+    {"id":10,"text":"일주일에 채소나 과일을 챙겨 먹는 편이다","response_type":"likert","inverted":true,"category":"식습관","weight":1.0},
     {"id":11,"text":"최근 3개월간 원인 모를 두통이나 근육통이 잦다","response_type":"likert","category":"신체신호","weight":1.5},
     {"id":12,"text":"수면 시간이 불규칙한 편이다","response_type":"likert","category":"수면","weight":2.0},
     {"id":13,"text":"사소한 일에 예민해지거나 감정 조절 어렵다","response_type":"likert","category":"정신건강","weight":2.5},
@@ -22,7 +23,7 @@
   ],
   "total_weight": 27.5,
   "analysis_guide": {
-    "scoring": "yesno: 0/1 * weight, likert: 0~4 * weight",
+    "scoring": "yesno: 0/1 * weight, yesno_inverted: (1-응답) * weight, likert: 0~4 * weight (inverted인 경우 (4-응답) * weight)",
     "max_score": 81.5,
     "categories": {
       "식습관": [1,2,10],
