@@ -36,7 +36,7 @@ def delete_temp_file(user_id):
     if os.path.exists(path):
         os.remove(path)
 
-# save_raw_result
+# save_raw_result 함수 수정
 def save_raw_result(hash_val, responses):
     if not os.path.exists('users'): os.makedirs('users')
     path = f'users/{hash_val}.json'
@@ -64,18 +64,8 @@ if not st.session_state.get("logged_in"):
     st.stop()
 
 st.set_page_config(page_title="Be-Healthy 퀴즈", layout="centered")
-st.sidebar.markdown("### 👤 제출자 정보")
-st.sidebar.write("학번: 20XXXXXX")
-st.sidebar.write("이름: 성민")
 
 user_id = st.session_state.get("user_id")
-
-# 새 검사 시작 버튼: 세션 초기화 + 임시 파일 삭제
-if st.sidebar.button("🔄 새로운 검사 시작"):
-    delete_temp_file(user_id)
-    st.session_state.q_idx = 0
-    st.session_state.temp_responses = {}
-    st.rerun()
 
 # --- 3. 퀴즈 상태 복구 로직 ---
 
@@ -87,7 +77,7 @@ if 'q_idx' not in st.session_state:
     if temp_data:
         st.session_state.q_idx = temp_data['q_idx']
         st.session_state.temp_responses = temp_data['temp_responses']
-        st.sidebar.success("💡 이전 진행 상황을 불러왔습니다.")
+        st.success("💡 이전 진행 상황을 불러왔습니다.")
     else:
         st.session_state.q_idx = 0
         st.session_state.temp_responses = {}
@@ -109,7 +99,7 @@ st.subheader(f"Q{curr_idx + 1}. {q['text']}")
 # 기존 temp_responses에서 값을 가져옴 (기본값 "0")
 current_val = str(st.session_state.temp_responses.get(str(q['id']), "0"))
 
-if q['response_type'] == 'yesno':
+if q['response_type'] in ('yesno', 'yesno_inverted'):
     # 2지선다: 라디오 버튼
     options = ["0", "1"]
     labels = ["아니오", "네"]
@@ -156,7 +146,7 @@ with col3:
             st.rerun()
             
     if curr_idx == len(questions) - 1:
-        if st.button("🎉 제출 및 분석"):
+        if st.button("📊 제출 및 분석"):
             # 최종 결과 저장
             save_raw_result(user_id, st.session_state.temp_responses)
             # 제출 완료 후 임시 파일 삭제
