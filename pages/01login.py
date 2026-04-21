@@ -2,7 +2,6 @@ import streamlit as st
 import json
 import os
 import re
-import hashlib
 
 # JSON DB 설정
 DB_FILE = "users.json"
@@ -22,11 +21,6 @@ def save_user(id, pw):
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(users, f, ensure_ascii=False, indent=4)
     return True
-
-
-def get_safe_filename(user_id: str) -> str:
-    """사용자 ID로부터 안전한 해시 문자열을 생성합니다 (세션에 저장용)."""
-    return hashlib.sha256(user_id.encode("utf-8")).hexdigest()
 
 # --- 유효성 검사 함수 ---
 def validate_email(email):
@@ -82,8 +76,6 @@ else:
                 if login_id in users and users[login_id] == login_pw:
                     st.session_state["logged_in"] = True
                     st.session_state["user_id"] = login_id
-                    # 해시값을 세션에 저장하여 전체 페이지에서 공유
-                    st.session_state["user_hash"] = get_safe_filename(login_id)
                     st.session_state["error_msg"] = "" # 성공 시 에러 초기화
                     # 로그인 성공 시 퀴즈 페이지로 이동
                     st.switch_page("pages/02quiz.py")
