@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import os
+import hashlib
 from datetime import datetime
 
 st.set_page_config(page_title="Be-Healthy 퀴즈", layout="centered")
@@ -10,6 +11,9 @@ def load_quiz_data():
     with open('quizdata.json', 'r', encoding='utf-8') as f:
         return json.load(f)['questions']
 
+def get_user_hash(user_id):
+    return hashlib.sha256(user_id.encode()).hexdigest()
+
 def save_temp_progress(user_id, q_idx, responses):
     if not os.path.exists('temp_users'):
         os.makedirs('temp_users')
@@ -18,25 +22,29 @@ def save_temp_progress(user_id, q_idx, responses):
         "temp_responses": responses,
         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
-    with open(f'temp_users/{user_id}_temp.json', 'w', encoding='utf-8') as f:
+    user_hash = get_user_hash(user_id)
+    with open(f'temp_users/{user_hash}_temp.json', 'w', encoding='utf-8') as f:
         json.dump(temp_data, f, ensure_ascii=False, indent=4)
 
 def load_temp_progress(user_id):
-    path = f'temp_users/{user_id}_temp.json'
+    user_hash = get_user_hash(user_id)
+    path = f'temp_users/{user_hash}_temp.json'
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as f:
             return json.load(f)
     return None
 
 def delete_temp_file(user_id):
-    path = f'temp_users/{user_id}_temp.json'
+    user_hash = get_user_hash(user_id)
+    path = f'temp_users/{user_hash}_temp.json'
     if os.path.exists(path):
         os.remove(path)
 
-def save_raw_result(hash_val, responses):
+def save_raw_result(user_id, responses):
     if not os.path.exists('users'):
         os.makedirs('users')
-    path = f'users/{hash_val}.json'
+    user_hash = get_user_hash(user_id)
+    path = f'users/{user_hash}.json'
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as f:
             history = json.load(f)
@@ -52,7 +60,7 @@ def save_raw_result(hash_val, responses):
         json.dump(history, f, ensure_ascii=False, indent=4)
 
 if not st.session_state.get("logged_in"):
-    st.warning("이 페이지는 로그인 후 이용 가능합니다. 로그인 페이지로 이동하세요.")
+    st.warning("이 페이지는 로그인 후 이용 가능합니다.")
     st.stop()
 
 user_id = st.session_state.get("user_id")
@@ -85,7 +93,7 @@ if q['response_type'] == 'yesno':
     options = ["1", "0"]
     labels = {"1": "네", "0": "아니오"}
     choice = st.radio(
-        "선택하세요",
+        "선택해주세요",
         options=options,
         format_func=lambda x: labels[x],
         index=0,
@@ -93,7 +101,7 @@ if q['response_type'] == 'yesno':
     )
 else:
     choice = str(st.select_slider(
-        "정도를 선택하세요",
+        "정도를 선택해주세요",
         options=["0", "1", "2", "3", "4"],
         value="2",
         format_func=lambda x: {"0":"전혀 아니다","1":"거의 아니다","2":"가끔","3":"자주","4":"항상"}[x],

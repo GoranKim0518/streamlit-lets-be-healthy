@@ -1,15 +1,18 @@
 import streamlit as st
 import json, os
+import hashlib
 import plotly.express as px
 from pathlib import Path
 
 st.set_page_config(page_title="Health Dashboard", layout="wide")
 
 if not st.session_state.get("logged_in"):
-    st.warning("로그인 후 이용 가능합니다.")
+    st.warning("이 페이지는 로그인 후 이용 가능합니다.")
     st.stop()
 
 user_id = st.session_state["user_id"]
+user_hash = hashlib.sha256(user_id.encode()).hexdigest()
+
 st.title("🏥 건강관리 대시보드")
 st.caption("※ 점수가 낮을수록 건강한 상태입니다.")
 
@@ -26,10 +29,10 @@ def load_user_history(path, mtime):
 
 questions, qmap, guide = load_quiz_config()
 categories = guide["categories"]
-user_path = Path(f"users/{user_id}.json")
+user_path = Path(f"users/{user_hash}.json")
 
 if not user_path.exists():
-    st.info("📝 완료된 검사가 없습니다. 퀴즈부터 완료해주세요.")
+    st.info("📝 완료된 검사가 없습니다. 검사를 진행해주세요.")
     st.stop()
 
 history = load_user_history(str(user_path), os.path.getmtime(user_path))
@@ -70,8 +73,6 @@ def calculate_all_metrics(latest, prev, _qmap, _categories):
 
 total_curr, total_prev, norm_curr, norm_prev = calculate_all_metrics(latest, prev, qmap, categories)
 
-# cache_resource는 전역 단일 객체를 공유하므로 멀티 유저 환경에서
-# 다른 유저의 차트가 반환될 수 있음 → 유저별 독립 캐시인 cache_data로 변경
 @st.cache_data(show_spinner=False)
 def draw_bar_chart(norm_data):
     df = {"Category": list(norm_data.keys()), "Score": list(norm_data.values())}
@@ -81,8 +82,6 @@ def draw_bar_chart(norm_data):
     fig.update_layout(height=350, margin=dict(l=20, r=20, t=20, b=20))
     return fig
 
-# cache_resource는 전역 단일 객체를 공유하므로 멀티 유저 환경에서
-# 다른 유저의 차트가 반환될 수 있음 → 유저별 독립 캐시인 cache_data로 변경
 @st.cache_data(show_spinner=False)
 def draw_line_chart(norm_curr, norm_prev):
     df_line = []
@@ -94,11 +93,30 @@ def draw_line_chart(norm_curr, norm_prev):
     return fig
 
 diff = (total_curr - total_prev) if total_prev is not None else 0
+
 def get_risk_info(score):
-    if score <= 25: return "양호","🟢"
-    if score <= 50: return "주의","🟡"
-    if score <= 75: return "경계","🟠"
-    return "위험","🔴"
+    if score <= 25: return "양호", "🟢"
+    if score <= 50: return "주의", "🟡"
+    if score <= 75: return "경계", "🟠"
+    return "위험", "🔴"
+
+def get_change_status(score_diff, is_first):
+    STATUS_LABELS = {
+        "baseline": "🆕 첫 측정",
+        "improved": "✅ 개선",
+        "stable":   "유지",
+        "worsened": "⚠️ 악화",
+    }
+    if is_first:
+        status_key = "baseline"
+    elif score_diff <= -5:
+        status_key = "improved"
+    elif score_diff >= 5:
+        status_key = "worsened"
+    else:
+        status_key = "stable"
+    return STATUS_LABELS[status_key]
+
 level, icon = get_risk_info(total_curr)
 warning_triggered = (float(latest.get('14', 0)) >= 3)
 
@@ -107,10 +125,7 @@ with st.container():
     c1.metric("현재 위험 점수", f"{total_curr:.1f}%",
               delta=f"{diff:.1f}%" if not is_first else None, delta_color="inverse")
     c2.metric("위험 등급", f"{icon} {level}")
-    c3.metric("변화 상태", {
-        "baseline":"🆕 첫 측정", "improved":"✅ 개선",
-        "stable":"유지", "worsened":"⚠️ 악화"
-    }["improved" if diff <= -5 else "worsened" if diff >= 5 else "baseline" if is_first else "stable"])
+    c3.metric("변화 상태", get_change_status(diff, is_first))
     c4.metric("위험 신호(14)", "🚨 감지" if warning_triggered else "✅ 정상")
 
 st.markdown("---")
