@@ -3,7 +3,8 @@ import json
 import os
 from datetime import datetime
 
-# --- 1. 함수 정의 영역 ---
+st.set_page_config(page_title="Be-Healthy 퀴즈", layout="centered")
+
 @st.cache_data
 def load_quiz_data():
     with open('quizdata.json', 'r', encoding='utf-8') as f:
@@ -33,27 +34,29 @@ def delete_temp_file(user_id):
         os.remove(path)
 
 def save_raw_result(hash_val, responses):
-    if not os.path.exists('users'): os.makedirs('users')
+    if not os.path.exists('users'):
+        os.makedirs('users')
     path = f'users/{hash_val}.json'
-    history = json.load(open(path, 'r', encoding='utf-8')) if os.path.exists(path) else []
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            history = json.load(f)
+    else:
+        history = []
     history.append({
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "raw_responses": responses
     })
     if len(history) > 2:
         history = history[-2:]
-    with open(path, 'w', encoding='utf-8') as f: 
+    with open(path, 'w', encoding='utf-8') as f:
         json.dump(history, f, ensure_ascii=False, indent=4)
 
-# --- 2. 페이지 설정 및 접근 제어 ---
 if not st.session_state.get("logged_in"):
     st.warning("이 페이지는 로그인 후 이용 가능합니다. 로그인 페이지로 이동하세요.")
     st.stop()
 
-st.set_page_config(page_title="Be-Healthy 퀴즈", layout="centered")
 user_id = st.session_state.get("user_id")
 
-# --- 3. 퀴즈 상태 복구 로직 ---
 questions = load_quiz_data()
 
 if 'q_idx' not in st.session_state:
@@ -66,7 +69,6 @@ if 'q_idx' not in st.session_state:
         st.session_state.q_idx = 0
         st.session_state.temp_responses = {}
 
-# --- 4. 퀴즈 UI ---
 st.title("🏥 Be-Healthy 건강 체크")
 st.write(f"안녕하세요 **{user_id}**님, 현재 상태를 솔직하게 답변해주세요.")
 
@@ -80,18 +82,16 @@ st.markdown("---")
 st.subheader(f"Q{curr_idx + 1}. {q['text']}")
 
 if q['response_type'] == 'yesno':
-    # "네"가 먼저 오도록 options 순서["1", "0"], 초기값 "1"
     options = ["1", "0"]
     labels = {"1": "네", "0": "아니오"}
     choice = st.radio(
         "선택하세요",
         options=options,
         format_func=lambda x: labels[x],
-        index=0, # "1"(네) 선택
+        index=0,
         key=f"radio_{q['id']}"
     )
 else:
-    # 초기값 "2"
     choice = str(st.select_slider(
         "정도를 선택하세요",
         options=["0", "1", "2", "3", "4"],
@@ -116,7 +116,7 @@ with col3:
             st.session_state.q_idx += 1
             save_temp_progress(user_id, st.session_state.q_idx, st.session_state.temp_responses)
             st.rerun()
-            
+
     if curr_idx == len(questions) - 1:
         if st.button("📊 제출 및 분석"):
             save_raw_result(user_id, st.session_state.temp_responses)
