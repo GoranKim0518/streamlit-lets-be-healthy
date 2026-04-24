@@ -160,13 +160,13 @@ with st.container():
 st.markdown("---")
 
 st.subheader("📊 카테고리별 위험 점수")
-st.plotly_chart(draw_bar_chart(norm_curr), use_container_width=True, config={'displayModeBar': False})
+st.plotly_chart(draw_bar_chart(norm_curr), width="stretch", config={'displayModeBar': False})
 
 if not is_first:
     st.subheader("📈 이전 대비 변화")
 
     #
-    st.plotly_chart(draw_line_chart(norm_curr, norm_prev), use_container_width=True, config={'displayModeBar': False})
+    st.plotly_chart(draw_line_chart(norm_curr, norm_prev), width="stretch", config={'displayModeBar': False})
 
 if warning_triggered:
     st.error("⚠️ 문항 14번에서 위험 응답이 감지되었습니다.")

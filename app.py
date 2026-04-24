@@ -1,6 +1,5 @@
 import streamlit as st
 
-# 레이아웃을 중앙 정렬로 고정
 st.set_page_config(layout="centered")
 
 st.title("👨‍⚕️ Be-Healthy | 2021321022 이성민")
@@ -14,11 +13,14 @@ st.markdown("1. 로그인 후 quiz 탭에서 검사를 시작합니다.")
 st.markdown("2. 검사를 모두 마친 후 dashboard 탭에서 결과를 확인합니다.")
 st.markdown("")
 
-# session_state 초기화
+# 새로고침 시 변수가 초기화되므로 session_state로 상태 유지
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
+if "page" not in st.session_state:
+    st.session_state["page"] = "login"
+if "error_msg" not in st.session_state:
+    st.session_state["error_msg"] = ""
 
-# 로그인되어 있지 않을 때만 로그인 버튼 표시
 if not st.session_state.get("logged_in"):
     if st.button('로그인해서 건강 관리 시작하기'):
         st.switch_page("pages/01login.py")

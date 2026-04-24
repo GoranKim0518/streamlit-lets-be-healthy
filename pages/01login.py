@@ -78,7 +78,7 @@ else:
         col1, col2 = st.columns([1, 1])
 
         with col1:
-            if st.button("로그인", use_container_width=True):
+            if st.button("로그인", width="stretch"):
                 if login_id == "":
                     st.session_state["error_msg"] = ERROR_MESSAGES["empty_email"]
                 elif not validate_email(login_id):
@@ -99,7 +99,7 @@ else:
                         st.session_state["error_msg"] = ERROR_MESSAGES["login_failed"]
 
         with col2:
-            if st.button("계정 생성", use_container_width=True):
+            if st.button("계정 생성", width="stretch"):
                 st.session_state["page"] = "signup"
                 st.session_state["error_msg"] = ""
                 st.rerun()
@@ -115,7 +115,7 @@ else:
         col_sub1, col_sub2 = st.columns([1, 1])
 
         with col_sub1:
-            if st.button("가입하기", use_container_width=True):
+            if st.button("가입하기", width="stretch"):
                 if new_id == "":
                     st.session_state["error_msg"] = ERROR_MESSAGES["empty_email"]
                     st.rerun()
@@ -140,7 +140,7 @@ else:
                                 st.rerun()
 
         with col_sub2:
-            if st.button("취소", use_container_width=True):
+            if st.button("취소", width="stretch"):
                 st.session_state["page"] = "login"
                 st.session_state["error_msg"] = ""
                 st.rerun()
