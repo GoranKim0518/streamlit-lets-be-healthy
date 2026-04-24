@@ -6,6 +6,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="Be-Healthy 퀴즈", layout="centered")
 
+# 퀴즈 데이터를 메모리에 캐싱하여 반복 로드 방지
 @st.cache_data
 def load_quiz_data():
     with open('quizdata.json', 'r', encoding='utf-8') as f:
@@ -14,6 +15,7 @@ def load_quiz_data():
 def get_user_hash(user_id):
     return hashlib.sha256(user_id.encode()).hexdigest()
 
+# temp파일 생성으로 사용자가 중간에 나가도 진행 상황 복구 가능
 def save_temp_progress(user_id, q_idx, responses):
     if not os.path.exists('temp_users'):
         os.makedirs('temp_users')
@@ -54,6 +56,7 @@ def save_raw_result(user_id, responses):
         "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "raw_responses": responses
     })
+    #윈도우 슬라이딩 방식; 최근 2개 검사 결과만 비교 가능하도록
     if len(history) > 2:
         history = history[-2:]
     with open(path, 'w', encoding='utf-8') as f:

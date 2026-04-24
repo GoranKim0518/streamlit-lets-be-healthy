@@ -20,6 +20,7 @@ ERROR_MESSAGES = {
     "invalid_password": "대문자, 특수문자가 하나 이상 포함된 8~20자의 패스워드를 생성해주세요.",
 }
 
+# SHA-256 단방향 해싱
 def hash_value(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -40,6 +41,7 @@ def save_user(user_id, pw):
 def validate_email(email):
     return "@" in email
 
+# 대문자, 특수문자 1개 이상인 8~20자 패스워드
 def validate_password(password):
     if not isinstance(password, str) or password == "":
         return False, ERROR_MESSAGES["empty_password"]
