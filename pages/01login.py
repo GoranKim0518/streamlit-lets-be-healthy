@@ -3,6 +3,7 @@ import json
 import os
 import re
 import hashlib
+from json import JSONDecodeError
 
 st.set_page_config(page_title="Be-Healthy 로그인", layout="centered")
 
@@ -25,18 +26,33 @@ def hash_value(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 def load_users():
-    with open(DB_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(DB_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump({}, f)
+        return {}
+    except JSONDecodeError:
+        st.error("⚠️ 사용자 데이터 파일이 손상되었습니다.")
+        st.stop()
+    except Exception as e:
+        st.error(f"사용자 데이터를 불러오는 중 알 수 없는 오류가 발생했습니다: {e}")
+        st.stop()
 
 def save_user(user_id, pw):
-    users = load_users()
-    hashed_id = hash_value(user_id)
-    if hashed_id in users:
+    try:
+        users = load_users()
+        hashed_id = hash_value(user_id)
+        if hashed_id in users:
+            return False
+        users[hashed_id] = hash_value(pw)
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(users, f, ensure_ascii=False, indent=4)
+        return True
+    except Exception as e:
+        st.error(f"사용자 정보를 저장하지 못했습니다: {e}")
         return False
-    users[hashed_id] = hash_value(pw)
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, ensure_ascii=False, indent=4)
-    return True
 
 def validate_email(email):
     return "@" in email

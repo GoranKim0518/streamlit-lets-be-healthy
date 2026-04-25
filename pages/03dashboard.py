@@ -3,6 +3,7 @@ import json, os
 import hashlib
 import plotly.express as px
 from pathlib import Path
+from json import JSONDecodeError
 
 st.set_page_config(page_title="Health Dashboard", layout="wide")
 
@@ -19,15 +20,23 @@ st.caption("※ 점수가 낮을수록 건강한 상태입니다.")
 #quizdata.json은 앱 실행 중 변경되지 않기에 메모리에 유지
 @st.cache_data(show_spinner=False)
 def load_quiz_config(path="quizdata.json"):
-    with open(path, 'r', encoding='utf-8') as f:
-        cfg = json.load(f)
-    return cfg["questions"], {q["id"]: q for q in cfg["questions"]}, cfg["analysis_guide"]
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            cfg = json.load(f)
+        return cfg["questions"], {q["id"]: q for q in cfg["questions"]}, cfg["analysis_guide"]
+    except (FileNotFoundError, JSONDecodeError) as e:
+        st.error(f"질문을 불러올 수 없습니다: {e}")
+        st.stop()
 
 #mtime(수정시간)을 key로 사용하여 파일 변경시 자동으로 캐시 갱신
 @st.cache_data(show_spinner=False)
 def load_user_history(path, mtime):
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, JSONDecodeError) as e:
+        st.error(f"검사 기록을 읽지 못했습니다: {e}")
+        st.stop()
 
 questions, qmap, guide = load_quiz_config()
 categories = guide["categories"]
@@ -41,7 +50,6 @@ history = load_user_history(str(user_path), os.path.getmtime(user_path))
 latest = history[-1]["raw_responses"]
 prev = history[-2]["raw_responses"] if len(history) > 1 else None
 is_first = (prev is None)
-
 
 @st.cache_data(show_spinner=False)
 def calculate_all_metrics(latest, prev, _qmap, _categories):
