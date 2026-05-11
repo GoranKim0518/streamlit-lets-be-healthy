@@ -1,5 +1,7 @@
 import streamlit as st
 
+print("조작중")
+
 st.set_page_config(layout="centered")
 
 st.title("👨‍⚕️ Be-Healthy | 2021321022 이성민")
